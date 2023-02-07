@@ -3,3 +3,6 @@ database.ini
 
 # ignore Logs folder
 Logs/
+
+# ignore the thumbnails folder
+thumbnails/

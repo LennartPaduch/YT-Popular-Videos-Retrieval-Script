@@ -1,0 +1,5 @@
+# ignore database.ini
+database.ini
+
+# ignore Logs folder
+Logs/

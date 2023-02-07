@@ -180,6 +180,7 @@ async def get_trending_videos(service: Resource, countries, category_ids) -> Lis
     seen_video_ids = set()
     video_trending_regions = dict()
     for country in countries:
+        if country['code'] == 'US': break
         logging.info(f"Fetching trending videos for: {country['name']} ({country['code']})")
         for category in category_ids:
             request = service.videos().list(

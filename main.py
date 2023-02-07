@@ -43,7 +43,6 @@ from download_thumbnails import download_images
 # logging module is imported to log information about the script's execution,
 import logging
 
-# argparse module used to pass starting args when running main.py
 import argparse
 
 
@@ -100,7 +99,7 @@ def get_tags(video: Dict) -> str:
     tags = video.get('snippet', {}).get('tags', [])
     return format_list(tags)
 
-async def insert_videos_into_db(data, conn: psycopg2.extensions.connection, cur: psycopg2.extensions.cursor) -> None:
+async def insert_videos_into_db(data, conn: psycopg2.extensions.connection, cur: psycopg2.extensions.cursor, channel_data: List[Tuple]) -> None:
     """
     This function inserts the data of videos into a PostgreSQL database.
 
@@ -151,7 +150,6 @@ async def insert_videos_into_db(data, conn: psycopg2.extensions.connection, cur:
         # Log an error message and rollback the transaction in case of an exception
         logging.error("Error inserting videos into the database: ", e)
         conn.rollback()
-
     insert_query = ("""INSERT INTO yt_videos_history
                     (video_id, like_count, view_count, comment_count, timestamp, title, thumbnail_hash, 
                     thumbnail_iteration, embeddable, caption, blocked_regions, trending_regions, idx)
@@ -167,7 +165,26 @@ async def insert_videos_into_db(data, conn: psycopg2.extensions.connection, cur:
     except Exception as e:
         # Log an error message and rollback the transaction in case of an exception
         logging.error("Error inserting videos into the database: ", e)
-        conn.rollback()                
+        conn.rollback()    
+
+    insert_query = ("""INSERT INTO yt_channel
+                    (id, title, last_updated, category_ids, trended_countries, trending_cnt) VALUES %s
+                    ON CONFLICT (id) DO UPDATE SET
+                    last_updated = EXCLUDED.last_updated,
+                    title = EXCLUDED.title,
+                    trended_countries = array_cat(yt_channel.trended_countries, EXCLUDED.trended_countries),
+                    category_ids = array_cat(yt_channel.category_ids, EXCLUDED.category_ids),
+                    trending_cnt = EXCLUDED.trending_cnt
+                    """)
+    try: 
+        # Execute the insertion query with values and commit the transaction
+        psycopg2.extras.execute_values(cur, insert_query, channel_data, template=
+            "(%(id)s, %(title)s, %(timestamp)s, %(category_ids)s, %(trended_countries)s, %(trending_cnt)s)", page_size=200)               
+        conn.commit()
+    except Exception as e:
+        # Log an error message and rollback the transaction in case of an exception
+        logging.error("Error inserting videos into the database: ", e)
+        conn.rollback()                 
 
 async def get_trending_videos(service: Resource, countries, category_ids) -> List[Dict]:
     """
@@ -180,7 +197,6 @@ async def get_trending_videos(service: Resource, countries, category_ids) -> Lis
     seen_video_ids = set()
     video_trending_regions = dict()
     for country in countries:
-        if country['code'] == 'US': break
         logging.info(f"Fetching trending videos for: {country['name']} ({country['code']})")
         for category in category_ids:
             request = service.videos().list(
@@ -314,10 +330,36 @@ async def get_data(cur: psycopg2.extensions.cursor, videos, video_trending_regio
         thumnail_iterations, thumbnails_to_download = generate_thumbnail_iteration(cur, video_ids, hashes)
         unique_video_ids = set()
         data = []
+        channel_arr = []
+        channel_dict = dict()
+        trending_cnt = dict()
+        category_ids = dict()
+        trended_countries = dict()
         for index, video in enumerate(videos):
             if video['id'] in unique_video_ids:
                 continue
+
+            # Add to channel_data
+            channel_id = video['snippet']['channelId']
+
+            # 
+            trending_cnt[channel_id] = trending_cnt.get(channel_id, 0) + 1
+            category_ids[channel_id] = list(set(category_ids.get(channel_id, [])) | {int(video.get('snippet', {}).get('categoryId', -1))})
+            trended_countries[channel_id] = list(set(trended_countries.get(channel_id, [])) | set(video_trending_regions.get(video['id'], [])))
+            
+            channel_dict[channel_id] = {
+                    "id": channel_id, 
+                    "title": re.sub("\'", "''", video["snippet"]["channelTitle"]),
+                    "timestamp": datetime.datetime.now(),
+                    "trending_cnt": trending_cnt[channel_id],
+                    "category_ids": category_ids[channel_id],
+                    "trended_countries": trended_countries[channel_id]
+                }
+                    
+            # Add to unique video_ids
             unique_video_ids.add(video['id'])
+
+            # Add to data
             data.append({        
             "video_id": video['id'],
             "channel_id": video['snippet']['channelId'],
@@ -337,7 +379,7 @@ async def get_data(cur: psycopg2.extensions.cursor, videos, video_trending_regio
             "dimension": video.get('contentDetails', None).get('dimension', None),
             "embeddable": video.get('status', None).get('embeddable', None),
             "made_for_kids": video.get('status', None).get('madeForKids', None),
-            "tags": get_tags(video),
+            "tags": get_tags(video), 
             "blocked_regions": video.get('contentDetails', {}).get('regionRestriction', {}).get('blocked', []),
             "default_audio_language": video.get('snippet', None).get('defaultAudioLanguage', None),
             "thumbnail_hash": hashes[index],
@@ -346,7 +388,12 @@ async def get_data(cur: psycopg2.extensions.cursor, videos, video_trending_regio
             "trending_regions": video_trending_regions[video['id']],
             "thumbnail_iteration": thumnail_iterations.get(video['id']),
             })
-    return data, thumbnails_to_download
+    
+    # Appends each channel from the channel dictionary to the channel array, 
+    # so that it can be used for insertion into the database
+    for _, value in channel_dict.items():
+        channel_arr.append(value)
+    return data, thumbnails_to_download, channel_arr    
 
 async def main() -> None:
     """
@@ -386,9 +433,9 @@ async def main() -> None:
     service = build('youtube', 'v3', developerKey=yt_v3_key)
 
     # Retrieve trending videos and insert them into the database
-    videos, video_trending_regions = await get_trending_videos(service, COUNTRIES[countries], category_ids)
-    data, thumbnails_to_download = await get_data(cur, videos, video_trending_regions)
-    await insert_videos_into_db(data, conn, cur)
+    videos, video_trending_regions, = await get_trending_videos(service, COUNTRIES[countries], category_ids)
+    data, thumbnails_to_download, channelData = await get_data(cur, videos, video_trending_regions)
+    await insert_videos_into_db(data, conn, cur, channelData)
 
     # Close the service and database connections
     service.close() 

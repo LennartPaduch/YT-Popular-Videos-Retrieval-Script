@@ -1,5 +1,9 @@
-# This is a script to get trending YouTube videos of a specified region 
-# and insert the information into a postgreSQL table 'youtubevideos'
+# This is a python script that retrieves and stores information about the top 200 trending videos 
+# based on sepecified category_ids, for each country, into a postgreSQL database table 'yt_videos'. 
+# The script also calculates a SHA-256 hash for each video thumbnail, detects changes in thumbnails 
+# by comparing the hashes with stored ones in the database and automatically downloads new or updated thumbnails. 
+# Additionally, it caputes and stores the channel information of the video uploaders seperate table 'yt_channel' 
+# including details such as the trending history and frequency of the channel in different regions.  
 
 # Import the required module for calling the YouTube API
 from googleapiclient.discovery import build, Resource

@@ -18,8 +18,8 @@ A valid YouTube API key
 1. Clone the repository <br>
 2. Set up the postgreSQL database<br>
 3. Obtain a valid YouTube API key<br>
-4. Replace the placeholder values in the code with your own credentials<br>
-5. Activate the virtual environment .venv or create your own and install the dependencies listed in requirements.txt
+4. Replace the placeholder values in `main.py` and `database.ini` with your own credentials<br>
+5. Activate the virtual environment `.venv` or create your own and install the dependencies listed in requirements.txt
 6. Run the script using the command `python main.py --countries primary` or `python main.py --countries secondary`
 
 ## Documentation

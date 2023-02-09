@@ -453,6 +453,11 @@ async def main() -> None:
     logger.setLevel(logging.DEBUG)
     today = datetime.datetime.now().strftime('%Y-%m-%d')
     filename = f"logs/{today}.log"
+
+    # Check if logs directory exists, create it if not
+    if not os.path.exists("logs"):
+        os.makedirs("logs") 
+
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     handler = logging.FileHandler(filename)
     handler.setFormatter(formatter)

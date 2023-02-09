@@ -1,4 +1,7 @@
 vscode
-_pychache
-Logs/**/*
+__pycache__
+Logs/*
 thumbnails
+*.ini
+
+

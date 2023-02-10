@@ -34,7 +34,7 @@ For example, to create a virtual environment named venv, which is a commonly use
 ## Running the Script
 You can run the script using the command `python main.py --countries primary` or `python main.py --countries secondary`. By default, the primary option includes data from 22 countries such as **US**, **DE**, **IN**, and **JP**. The secondary option includes data from 91 countries including **MN**, **BD**, **QA**, and **DZ**. You can find a complete list of countries in the **countries.py** file.
 <br>
-**Note:* *<br>
+**Note:**<br>
 To ensure efficient usage of the YouTube API key and avoid exceeding its daily quota limit of 10,000, the supported countries by YouTube have been separated into two subsets - **primary** and **secondary**. I configured the script to run hourly for the primary regions and every six hours for the secondary regions on an AWS EC2 instance running Debian using Linux' cron tasks. 
 <br> You have the flexibility to customize the priority of countries or remove the separation altogether, depending on your specific setup, use case, and API key's quota limits.
 

@@ -1,4 +1,4 @@
-CREATE TABLE yt_videos4(
+CREATE TABLE yt_videos(
     video_id varchar(11) PRIMARY KEY,
     channel_id text,
     view_count integer,

@@ -1,4 +1,4 @@
-CREATE TABLE yt_channel2(
+CREATE TABLE yt_channel(
     title text,
     last_updated timestamp,
     id varchar(30) PRIMARY KEY,

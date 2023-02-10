@@ -17,6 +17,7 @@ from config import config
 # Import a list of countries for which videos need to be fetched
 from countries import COUNTRIES
 
+# Import a dict of categories for easier manangement of categoryIds
 from categories import CATEGORIES
 
 # Import the datetime and time module to work with dates
@@ -49,8 +50,8 @@ from download_thumbnails import download_images
 # logging module is imported to log information about the script's execution,
 import logging
 
+# argparse module to use args such as `--countries primary` when running this script
 import argparse
-
 
 
 class PostgreSQL:
@@ -326,7 +327,17 @@ def generate_thumbnail_iteration(cur: psycopg2.extensions.cursor, video_ids, thu
     :return: a dictionary mapping video ids to thumbnail iterations and a list of thumbnails to download
     """
     placeholders = ', '.join(['%s'] * len(video_ids))
-    cur.execute(f"WITH max_iterations AS (SELECT yt_videos_history.video_id, MAX(thumbnail_iteration) AS max_iteration FROM yt_videos_history WHERE video_id IN ({placeholders}) GROUP BY video_id) SELECT yt_videos_history.video_id, thumbnail_hash, thumbnail_iteration FROM yt_videos_history JOIN max_iterations ON yt_videos_history.video_id = max_iterations.video_id AND yt_videos_history.thumbnail_iteration = max_iterations.max_iteration", video_ids)
+    cur.execute(
+        f"""
+        WITH max_iterations AS 
+            (SELECT yt_videos_history.video_id, MAX(thumbnail_iteration) AS max_iteration 
+                FROM yt_videos_history 
+                WHERE video_id IN ({placeholders}) 
+                GROUP BY video_id) 
+        SELECT yt_videos_history.video_id, thumbnail_hash, thumbnail_iteration 
+        FROM yt_videos_history 
+        JOIN max_iterations ON yt_videos_history.video_id = max_iterations.video_id 
+                            AND yt_videos_history.thumbnail_iteration = max_iterations.max_iteration""", video_ids)
     results = cur.fetchall()
     iteration_dict = {}
     thumbnails_to_download = list()

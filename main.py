@@ -17,6 +17,8 @@ from config import config
 # Import a list of countries for which videos need to be fetched
 from countries import COUNTRIES
 
+from categories import CATEGORIES
+
 # Import the datetime and time module to work with dates
 import datetime, time
 
@@ -48,6 +50,7 @@ from download_thumbnails import download_images
 import logging
 
 import argparse
+
 
 
 class PostgreSQL:
@@ -395,25 +398,25 @@ async def get_data(cur: psycopg2.extensions.cursor, videos, video_trending_regio
             data.append({        
             "video_id": video['id'],
             "channel_id": video['snippet']['channelId'],
-            "view_count": video.get('statistics', None).get('viewCount', None),
-            "comment_count": video.get('statistics', None).get('commentCount', None),
-            "like_count": video.get('statistics', None).get('likeCount', None),
+            "view_count": video.get('statistics', {}).get('viewCount', None),
+            "comment_count": video.get('statistics', {}).get('commentCount', None),
+            "like_count": video.get('statistics', {}).get('likeCount', None),
             "published_at": datetime.datetime.strptime(video['snippet']['publishedAt'], '%Y-%m-%dT%H:%M:%SZ'),
             "title": re.sub("\'", "''", video['snippet']['title']),
             "description": re.sub("\'", "''", video['snippet']['description']),
             "thumbnails": json.dumps(video['snippet']['thumbnails']),
             "channel_title": re.sub("\'", "''", video["snippet"]["channelTitle"]),
-            "category_id": video.get('snippet', None).get('categoryId', None),
-            "duration": video.get('contentDetails', None).get('duration', None),
-            "definition": video.get('contentDetails', None).get('definition', None),
-            "caption": video.get('contentDetails', None).get('caption'),
-            "licensed_content": video.get('contentDetails', None).get('licensedContent', None),
-            "dimension": video.get('contentDetails', None).get('dimension', None),
-            "embeddable": video.get('status', None).get('embeddable', None),
-            "made_for_kids": video.get('status', None).get('madeForKids', None),
+            "category_id": video.get('snippet', {}).get('categoryId', None),
+            "duration": video.get('contentDetails', {}).get('duration', None),
+            "definition": video.get('contentDetails', {}).get('definition', None),
+            "caption": video.get('contentDetails', {}).get('caption'),
+            "licensed_content": video.get('contentDetails', {}).get('licensedContent', None),
+            "dimension": video.get('contentDetails', {}).get('dimension', None),
+            "embeddable": video.get('status', {}).get('embeddable', None),
+            "made_for_kids": video.get('status', {}).get('madeForKids', None),
             "tags": get_tags(video), 
             "blocked_regions": video.get('contentDetails', {}).get('regionRestriction', {}).get('blocked', []),
-            "default_audio_language": video.get('snippet', None).get('defaultAudioLanguage', None),
+            "default_audio_language": video.get('snippet', {}).get('defaultAudioLanguage', None),
             "thumbnail_hash": hashes[index],
             "idx": idx_dict.get(video['id'], 1),
             "timestamp": datetime.datetime.now(),
@@ -446,7 +449,13 @@ async def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--countries", type=str)
     countries = parser.parse_args().countries
-    category_ids = [20, 23, 24, 0] if countries == 'primary' else [0] # 20 = gaming, 23 = comedy, 24 = entertainment, 0 = all
+
+    # If countries is 'primary', retrieve categories 'Gaming', 'Comedy', 'Entertainment' and 'All'
+    # If countries is not 'primary', retrieve only category 'All'
+    # This is to avoid exceeding the API quota limit of 10,000 per day.
+    category_ids = [CATEGORIES['All']]
+    if countries == 'primary':
+        category_ids.extend([CATEGORIES['Gaming'], CATEGORIES['Comedy'], CATEGORIES['Entertainment']])
 
     # Set up logging
     logger = logging.getLogger()
@@ -461,11 +470,10 @@ async def main() -> None:
     logger.addHandler(handler)
 
     # Get the YouTube API key and connect to the postgreSQL database
-    yt_v3_key = os.environ.get("YT_v3_API_KEY")
+    YT_V3_KEY = os.environ.get("YT_v3_API_KEY")
     conn, cur = PostgreSQL.connect()
-
     # Create a service object from the YouTube API
-    service = build('youtube', 'v3', developerKey=yt_v3_key)
+    service = build('youtube', 'v3', developerKey=YT_V3_KEY)
 
     # Retrieve trending videos and insert them into the database
     videos, video_trending_regions, = await get_trending_videos(service, COUNTRIES[countries], category_ids)

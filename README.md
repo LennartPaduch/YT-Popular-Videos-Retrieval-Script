@@ -32,7 +32,7 @@ To activate an existing virtual environment, run the activate file in the Script
 To create a new virtual environment, run the following command in your terminal or command line: <br>
 `python -m venv <directory>`
 
-For example, to create a virtual environment named venv, which is a commonly used optiopn, run the following command: <br>
+For example, to create a virtual environment named venv, which is a commonly used option, run the following command: <br>
 `python -m venv venv`
 
 ## Running the Script

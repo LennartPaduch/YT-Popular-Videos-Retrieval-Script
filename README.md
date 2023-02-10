@@ -19,11 +19,11 @@ A valid YouTube API key
 2. Set up the postgreSQL database using the SQL table creation commands provided in the **SQL tables** folder. You may adjust these tables to your specific use case, in which case you would also need to modify some parts of the main.py script accordingly. This can include changes to the table structure, query conditions, or any other relevant parts.<br>
 3. Obtain a valid YouTube API key<br>
 4. Replace the placeholder values in `main.py` and `database.ini` with your own credentials<br>
-5. Activate the [virtual environment](#virtual-environment) `.venv` or create your own and install the dependencies listed in requirements.txt
+5. Activate the [virtual environment](#virtual-environment) `.venv` or create your own and install the dependencies listed in **requirements.txt**
 6. [Run the script](#running-the-script)
 
 ## Virtual Environment 
-To activate an existing virtual environment, run the activate file in the Scripts folder of the virtual environment directory. You can activate the virtual environment .venv from this repository by typing .venv/Scripts/activate in the terminal or command line while in the directory where the .venv folder is located.
+To activate an existing virtual environment, run the activate file in the Scripts folder of the virtual environment directory. You can activate the virtual environment **.venv** from this repository by typing `.venv/Scripts/activate` in the terminal or command line while in the directory where the **.venv** folder is located.
 
 To create a new virtual environment, run the following command in your terminal or command line: <br>
 `python -m venv <directory>`
@@ -34,9 +34,9 @@ For example, to create a virtual environment named venv, which is a commonly use
 ## Running the Script
 You can run the script using the command `python main.py --countries primary` or `python main.py --countries secondary`. By default, the primary option includes data from 22 countries such as **US**, **DE**, **IN**, and **JP**. The secondary option includes data from 91 countries including **MN**, **BD**, **QA**, and **DZ**. You can find a complete list of countries in the **countries.py** file.
 <br>
-Note: <br>
+**Note:* *<br>
 To ensure efficient usage of the YouTube API key and avoid exceeding its daily quota limit of 10,000, the supported countries by YouTube have been separated into two subsets - **primary** and **secondary**. I configured the script to run hourly for the primary regions and every six hours for the secondary regions on an AWS EC2 instance running Debian using Linux' cron tasks. 
-<br> You have the flexibility to customize the priority of countries or remove the separation altogether, depending on your specific setup, use case, and API key quota limits.
+<br> You have the flexibility to customize the priority of countries or remove the separation altogether, depending on your specific setup, use case, and API key's quota limits.
 
 
 ## Documentation

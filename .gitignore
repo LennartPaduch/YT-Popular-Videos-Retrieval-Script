@@ -3,8 +3,4 @@ vscode
 __pycache__
 Logs/*
 thumbnails
-*.ini
-/*.ini
-
-
-
+.vscode

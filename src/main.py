@@ -198,7 +198,6 @@ async def get_trending_videos(service: Resource, countries, category_ids) -> Lis
     for country in countries:
         logging.info(f"Fetching trending videos for: {country['name']} ({country['code']})")
         for category in category_ids:
-            if(country['code'] != 'US'): break
             # Execute the first request to get the trending videos for the current country and video category
             request = service.videos().list(
                 part='contentDetails,id,liveStreamingDetails,localizations,player,snippet,statistics,status,topicDetails',

@@ -1,6 +1,6 @@
 CREATE TABLE yt_videos_history(
     id serial PRIMARY KEY,
-    video_id varchar(11) REFERENCES yt_videos2 (video_id),
+    video_id varchar(11) REFERENCES yt_videos (video_id),
     like_count integer,
     view_count integer,
     comment_count integer,

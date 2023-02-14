@@ -1,6 +1,6 @@
 # YouTube Popular Videos Retrieval Script
 
-This is a python script that retrieves and stores information about the top 200 trending videos based on sepecified **category_ids**, for each country, into a postgreSQL database table **yt_videos**. The script also calculates a SHA-256 hash for each video thumbnail, detects changes in thumbnails by comparing the hashes with stored ones in the database and automatically downloads new or updated thumbnails. <br> Additionally, it caputes and stores the channel information of the video uploaders into a seperate **yt_channel** table, including details such as the trending history and frequency of the channel in different regions.  
+This is a python script that retrieves and stores information about the top 200 trending videos based on sepecified **category_ids**, for each country, into a postgreSQL database table **yt_videos**. The script also calculates a SHA-256 hash for each video thumbnail, detects changes in thumbnails by comparing the hashes with stored ones in the database and automatically downloads new or updated thumbnails.
 
 ## Features
 
@@ -9,7 +9,6 @@ This is a python script that retrieves and stores information about the top 200 
 - Calculates a sha-256 hash for video thumbnails <br>
 - Detects changes in thumbnails by comparing hashes with stored ones in the database<br>
 - Automatically downloads new or updated thumbnails<br>
-- Stores channel information in the **yt_channel** table
 
 ## Requirements
 - Python<br>

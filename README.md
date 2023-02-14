@@ -36,7 +36,7 @@ For example, to create a virtual environment named venv, which is a commonly use
 
 ## Running the Script
 
-You can run the script using the command `python main.py --countries primary` or `python main.py --countries secondary`. By default, the primary option includes data from 22 countries such as **US**, **DE**, **IN**, and **JP**. The secondary option includes data from 91 countries including **MN**, **BD**, **QA**, and **DZ**. You can find a complete list of countries in the **countries.py** file.
+You can run the script using the command `python src/main.py --countries primary` or `python src/main.py --countries secondary`. By default, the primary option includes data from 22 countries such as **US**, **DE**, **IN**, and **JP**. The secondary option includes data from 91 countries including **MN**, **BD**, **QA**, and **DZ**. You can find a complete list of countries in the **countries.py** file.
 <br>
 <br>
 **Note:**<br>

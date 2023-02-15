@@ -73,41 +73,6 @@ class PostgreSQL:
             logging.error(f"Failed to connect to the database: {error}")
 
 
-def format_list(lst: List[str]) -> str:
-    """
-    Format a list of tags or blocked regions into a string for storage in a database.
-    
-    :param lst: list of tags or regions to be formatted
-    :return: formatted string of the list in the format {'tag1', 'tag2', ...}
-    """
-    # Convert the list of tags or blocked regions into a string of format {'tag1', 'tag2', ...}.
-    formatted_str = '{' + ','.join(f"'{element}'" for element in lst) + '}'
-    
-    # Escape any single quotes within the string to be inserted into the database, 
-    # since single quotes are used as string delimiters in SQL.
-    formatted_str = re.sub("\'", "''", formatted_str)
-    
-    # Escape any double quotes within the string to be inserted into the database, 
-    # since double quotes may cause syntax errors in SQL.
-    formatted_str = re.sub('"', "\"", formatted_str)
-    
-    return formatted_str
- 
-
-def get_tags(video: Dict) -> str:
-    """
-    Extract the list of tags from a video dict object
-    
-    :param video: a dict object representing a video
-    :return: a formatted string of tags in the format of {'tag1', 'tag2', ...}
-    
-    The function uses the `.get` method to check if the 'snippet' and 'tags' keys exist in the `video` dict object. 
-    If the keys don't exist, an empty list is returned to avoid raising a keyError exception.
-    """
-    tags = video.get('snippet', {}).get('tags', [])
-    return format_list(tags)
-
-
 async def insert_videos_into_db(data, conn: psycopg2.extensions.connection, cur: psycopg2.extensions.cursor) -> None:
     """
     This function inserts the data of videos into a PostgreSQL database.
@@ -121,7 +86,7 @@ async def insert_videos_into_db(data, conn: psycopg2.extensions.connection, cur:
                     (video_id, channel_id, view_count, comment_count, like_count, published_at, title, 
                     description, thumbnails, channel_title, tags, category_id, duration, definition, caption,
                     licensed_content, dimension, embeddable, made_for_kids, default_audio_language, blocked_regions,
-                    thumbnail_hash, idx, trending_regions, timestamp, thumbnail_iteration)
+                    thumbnail_hash, trending_regions, timestamp, thumbnail_iteration)
                     VALUES %s
                     ON CONFLICT (video_id) DO UPDATE SET
                     view_count = EXCLUDED.view_count,
@@ -142,8 +107,7 @@ async def insert_videos_into_db(data, conn: psycopg2.extensions.connection, cur:
                     trending_regions = EXCLUDED.trending_regions,
                     timestamp = EXCLUDED.timestamp,
                     thumbnail_hash = EXCLUDED.thumbnail_hash,
-                    thumbnail_iteration = EXCLUDED.thumbnail_iteration,
-                    idx = EXCLUDED.idx;
+                    thumbnail_iteration = EXCLUDED.thumbnail_iteration
                     """)
 
     try:
@@ -152,16 +116,16 @@ async def insert_videos_into_db(data, conn: psycopg2.extensions.connection, cur:
         "(%(video_id)s, %(channel_id)s, %(view_count)s, %(comment_count)s, %(like_count)s, %(published_at)s,"
         "%(title)s, %(description)s, %(thumbnails)s, %(channel_title)s, %(tags)s, %(category_id)s, %(duration)s,"
         "%(definition)s, %(caption)s, %(licensed_content)s, %(dimension)s, %(embeddable)s, %(made_for_kids)s,"
-        "%(default_audio_language)s, %(blocked_regions)s, %(thumbnail_hash)s, %(idx)s, %(trending_regions)s, "
+        "%(default_audio_language)s, %(blocked_regions)s, %(thumbnail_hash)s, %(trending_regions)s, "
         "%(timestamp)s, %(thumbnail_iteration)s)", page_size=200)               
         conn.commit()
     except Exception as e:
         # Log an error message and rollback the transaction in case of an exception
-        logging.error("Error inserting videos into the database: ", e)
+        logging.error("Error inserting videos into the database: %s", e)
         conn.rollback()
     insert_query_yt_videos_history = ("""INSERT INTO yt_videos_history
                     (video_id, like_count, view_count, comment_count, timestamp, title, thumbnail_hash, 
-                    thumbnail_iteration, embeddable, caption, blocked_regions, trending_regions, idx)
+                    thumbnail_iteration, embeddable, caption, blocked_regions, trending_regions)
                     VALUES %s
                     """)
     try: 
@@ -169,11 +133,11 @@ async def insert_videos_into_db(data, conn: psycopg2.extensions.connection, cur:
         psycopg2.extras.execute_values(cur, insert_query_yt_videos_history, data, template=
             "(%(video_id)s, %(like_count)s, %(view_count)s, %(comment_count)s, %(timestamp)s, "
             "%(title)s, %(thumbnail_hash)s, %(thumbnail_iteration)s, %(embeddable)s, %(caption)s, "
-            "%(blocked_regions)s, %(trending_regions)s, %(idx)s)", page_size=200)               
+            "%(blocked_regions)s, %(trending_regions)s)", page_size=200)               
         conn.commit()
     except Exception as e:
         # Log an error message and rollback the transaction in case of an exception
-        logging.error("Error inserting videos into the database: ", e)
+        logging.error("Error inserting videos into the database: %s", e)
         conn.rollback()    
 
 
@@ -196,8 +160,9 @@ async def get_trending_videos(service: Resource, countries, category_ids) -> Lis
 
     # Loop through each country and fetch the trending videos for each video category
     for country in countries:
-        logging.info(f"Fetching trending videos for: {country['name']} ({country['code']})")
+        video_count = len(videos)
         for category in category_ids:
+            if(country['code'] != 'US'): break
             # Execute the first request to get the trending videos for the current country and video category
             request = service.videos().list(
                 part='contentDetails,id,liveStreamingDetails,localizations,player,snippet,statistics,status,topicDetails',
@@ -229,6 +194,7 @@ async def get_trending_videos(service: Resource, countries, category_ids) -> Lis
                     maxResults=50
                 )
                 response = request.execute()
+        logging.info(f"Fetched {len(videos) - video_count} videos for: {country['name']}")
     logging.info(f"Fetched a total of {len(videos)} videos")
     return videos, video_trending_regions
 
@@ -268,22 +234,6 @@ async def generate_hash_async(session, url: str, semaphore):
     async with semaphore:
         image_data = await get_image_data(session, url)
         return generate_hash(image_data)
-
-
-def generate_idx(cur: psycopg2.extensions.cursor, video_ids):
-    """
-    Generate an index n for every video_id indicating the n-th insert for the given video_id into the database
-
-    :param cur: psycopg2 cursor object used to execute the query
-    :param video_ids: list of video IDs to generate indices for
-    :return: dictionary mapping video IDs to their respective indices
-    """
-    placeholders = ', '.join(['%s'] * len(video_ids))
-    cur.execute(f"SELECT video_id, coalesce(max(idx), 0) + 1 as idx FROM yt_videos_history WHERE video_id in ({placeholders}) group by video_id", video_ids)
-    results = cur.fetchall()
-    idx_dict = {row[0]: row[1] for row in results}
-    return idx_dict
-
 
 def generate_thumbnail_iteration(cur: psycopg2.extensions.cursor, video_ids, thumbnail_hashes):
     """
@@ -342,7 +292,6 @@ async def get_data(cur: psycopg2.extensions.cursor, videos, video_trending_regio
     """
     async with ClientSession() as session:
         video_ids = [video['id'] for video in videos]
-        idx_dict = generate_idx(cur, video_ids)
         semaphore = asyncio.Semaphore(20)
         hashes = await asyncio.gather(*[generate_hash_async(session, video['id'], semaphore) for video in videos])
         thumnail_iterations, thumbnails_to_download = generate_thumbnail_iteration(cur, video_ids, hashes)
@@ -371,11 +320,10 @@ async def get_data(cur: psycopg2.extensions.cursor, videos, video_trending_regio
             "dimension": video.get('contentDetails', {}).get('dimension', None),
             "embeddable": video.get('status', {}).get('embeddable', None),
             "made_for_kids": video.get('status', {}).get('madeForKids', None),
-            "tags": get_tags(video), 
+            "tags": video.get('snippet', {}).get('tags', []), 
             "blocked_regions": video.get('contentDetails', {}).get('regionRestriction', {}).get('blocked', []),
             "default_audio_language": video.get('snippet', {}).get('defaultAudioLanguage', None),
             "thumbnail_hash": hashes[index],
-            "idx": idx_dict.get(video['id'], 1),
             "timestamp": datetime.datetime.now(),
             "trending_regions": video_trending_regions.get(video['id'],[]),
             "thumbnail_iteration": thumnail_iterations.get(video['id'], 1),

@@ -20,7 +20,6 @@ CREATE TABLE yt_videos(
     tags text[],
     blocked_regions varchar(2)[],
     thumbnail_hash varchar(64),
-    idx integer,
     default_audio_language varchar(7),
     timestamp timestamp,
     trending_regions varchar(2)[],

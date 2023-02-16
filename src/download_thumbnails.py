@@ -31,13 +31,15 @@ def download_image(thumbnail_to_download):
         f.write(response.content)
 
 
-def download_images(thumbnails_to_download):
+def download_images(thumbnails_to_download, logger):
     """
     Downloads multiple thumbnails in parallel using a ThreadPoolExecutor.
 
     :param thumbnails_to_download: A list of dictionaries with keys 'video_id' and 'iteration'
     :type thumbnails_to_download: list
     """
+    thumbnails_downloaded = 0
     with ThreadPoolExecutor() as executor:
         executor.map(download_image, thumbnails_to_download)
+    logger.info(f"Downloaded {thumbnails_downloaded} thumbnails")
 

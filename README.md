@@ -12,7 +12,7 @@ This is a python script that retrieves and stores information about the top 200 
 
 ## Requirements
 - Python<br>
-- postgreSQL database<br>
+- postgreSQL database ([Railway](https://railway.app?referralCode=_LMAfV) for a quick & easy setup)<br>
 - A valid YouTube API key
 
 ## Getting Started

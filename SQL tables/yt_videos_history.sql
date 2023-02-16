@@ -12,6 +12,5 @@ CREATE TABLE yt_videos_history(
     caption boolean,
     blocked_regions varchar(2)[],
     trending_regions varchar(2)[],
-    idx integer,
     CONSTRAINT uc_yt_videos_history_video_id_timestamp UNIQUE (video_id, timestamp)
 );

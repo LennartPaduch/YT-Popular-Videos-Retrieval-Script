@@ -36,13 +36,19 @@ For example, to create a virtual environment named venv, which is a commonly use
 
 ## Running the Script
 
-You have several options for the **--countries** argument:
-- `python src/main.py --countries primary`: This will retrieve information on the top 200 trending videos from 22 primary countries.
-- `python src/main.py --countries secondary`: This will retrieve information on the top 200 trending videos from 87 less-viewed countries.
-- `python src/main.py --countries all`: This will retrieve information on the top 200 trending videos from all 109 countries.
-- `python src/main.py --countries "DE, RU, FR, US"`: This will retrieve information on the top 200 trending videos from any number of arbitrary countries, separated by commas. If you specify more than one country, enclose the list of countries in quotation marks. For example, python src/main.py --countries "DE,FR" is valid, whereas python src/main.py --countries DE,FR is invalid.   
-python src/main.py: If you do not provide a value for --countries, the script will default to selecting the United States. 
-<br>You can find a complete list of all the different country subsets in countries.py.
+**Note**: By default, the categories for primary and secondary starting arguments are set to **'All'**, **'Gaming'**, **'Comedy'** and **'Entertainment'**. However, you can adjust these categories in the main function of the main.py file.
+<br>
+When running the script with any other value for the --countries argument, it will only retrieve data from the 'All' category, which includes every category but is limited to a maximum of 200 videos.
+<br>
+<br>
+You have several options for the **--countries** argument when running the script:
+<br>
+`python src/main.py --countries primary` Retrieves information about the most popular videos per category from each of the 22 primary countries.
+<br>`python src/main.py --countries secondary` Retrieves information about the most popular videos per category from each of the 87 less-viewed countries.
+<br>
+`python src/main.py --countries all` Retrieves information about up to the top 200 trending videos from all 109 countries.
+<br>
+Alternatively, you can specify any number of arbitrary countries by using `python src/main.py --countries "DE, RU, FR, US"`. You need to separate each country by commas and enclose the list of countries in quotation marks if you specify more than one country. For example, `python src/main.py --countries "DE,FR"` is valid, whereas `python src/main.py --countries DE,FR` is not.
 <br>
 <br>
 **Note:**<br>

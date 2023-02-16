@@ -36,15 +36,13 @@ For example, to create a virtual environment named venv, which is a commonly use
 
 ## Running the Script
 
-You can choose from several starting commands for the **countries** arg:
-- `python src/main.py --countries primary` (22 primary countries),
-- `python src/main.py --countries secondary` (87 less viewed countries),
-- `python src/main.py --countries all` (all 109 countries),
-- `python src/main.py --countries "DE, RU, FR, US"` Any number of arbitrary country codes, seperated by commas. 
-<br>If n > 1 country codes must be in quotation marks. <span style="color:green">Valid: **DE**, also valid: **"DE,FR"**</span>
-<span style="color:red">invalid: **DE,FR**</span>,   
-- `python src/main.py` Not provoding a countries arg will default to 'US'.
-You can find a complete list of the different subsets in **countries.py**
+You have several options for the **--countries** argument:
+- `python src/main.py --countries primary`: This will retrieve information on the top 200 trending videos from 22 primary countries.
+- `python src/main.py --countries secondary`: This will retrieve information on the top 200 trending videos from 87 less-viewed countries.
+- `python src/main.py --countries all`: This will retrieve information on the top 200 trending videos from all 109 countries.
+- `python src/main.py --countries "DE, RU, FR, US"`: This will retrieve information on the top 200 trending videos from any number of arbitrary countries, separated by commas. If you specify more than one country, enclose the list of countries in quotation marks. For example, python src/main.py --countries "DE,FR" is valid, whereas python src/main.py --countries DE,FR is invalid.   
+python src/main.py: If you do not provide a value for --countries, the script will default to selecting the United States. 
+<br>You can find a complete list of all the different country subsets in countries.py.
 <br>
 <br>
 **Note:**<br>

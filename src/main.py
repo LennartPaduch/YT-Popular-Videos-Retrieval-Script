@@ -160,7 +160,6 @@ async def get_trending_videos(service: Resource, countries, category_ids) -> Lis
 
     # Loop through each country and fetch the trending videos for each video category
     for country in countries:
-        print(country)
         video_count = len(videos)
         for category in category_ids:
             # Execute the first request to get the trending videos for the current country and video category
@@ -239,11 +238,13 @@ def generate_thumbnail_iteration(cur: psycopg2.extensions.cursor, video_ids, thu
     :param thumbnail_hashes: list of thumbnail hashes
     :return: a dictionary mapping video ids to thumbnail iterations and a list of thumbnails to download
     """
+    if not video_ids:
+        return dict(), list()
     placeholders = ', '.join(['%s'] * len(video_ids))
     query = f"""
     WITH max_iterations AS 
         (SELECT yt_videos_history.video_id, MAX(thumbnail_iteration) AS max_iteration 
-            FROM yt_videos_history 
+            FROM yt_videos_history
             WHERE video_id IN ({placeholders}) 
             GROUP BY video_id) 
     SELECT yt_videos_history.video_id, thumbnail_hash, thumbnail_iteration 

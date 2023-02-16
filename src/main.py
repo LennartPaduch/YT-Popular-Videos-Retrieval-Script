@@ -362,8 +362,9 @@ async def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--countries", type=str, default='US')
     args = parser.parse_args()
-    countries = COUNTRIES.get(args.countries.upper(), [])
-
+    args.countries = args.countries.upper()
+    countries = COUNTRIES.get(args.countries, [])
+  
     # If countries is 'PRIMARY', retrieve categories 'Gaming', 'Comedy', 'Entertainment' and 'All'
     # If countries is not 'PRIMARY', retrieve only category 'All'
     # This is to avoid exceeding the API quota limit of 10,000 per day.
@@ -385,7 +386,6 @@ async def main() -> None:
     conn, cur = PostgreSQL.connect()
     # Create a service object from the YouTube API
     service = build('youtube', 'v3', developerKey=YT_V3_KEY)
-
     # Retrieve trending videos and insert them into the database
     videos, video_trending_regions, = await get_trending_videos(service, countries, category_ids)
     data, thumbnails_to_download = await get_data(cur, videos, video_trending_regions)

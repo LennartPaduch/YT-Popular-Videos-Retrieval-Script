@@ -36,7 +36,15 @@ For example, to create a virtual environment named venv, which is a commonly use
 
 ## Running the Script
 
-You can run the script using the command `python src/main.py --countries primary` or `python src/main.py --countries secondary`. By default, the primary option includes data from 22 countries such as **US**, **DE**, **IN**, and **JP**. The secondary option includes data from 91 countries including **MN**, **BD**, **QA**, and **DZ**. You can find a complete list of countries in the **countries.py** file.
+You can choose from several starting commands for the **countries** arg:
+- `python src/main.py --countries primary` (22 primary countries),
+- `python src/main.py --countries secondary` (87 less viewed countries),
+- `python src/main.py --countries all` (all 109 countries),
+- `python src/main.py --countries "DE, RU, FR, US"` Any number of arbitrary country codes, seperated by commas. 
+<br>If n > 1 country codes must be in quotation marks. <span style="color:green">Valid: **DE**, also valid: **"DE,FR"**</span>
+<span style="color:red">invalid: **DE,FR**</span>,   
+- `python src/main.py` Not provoding a countries arg will default to 'US'.
+You can find a complete list of the different subsets in **countries.py**
 <br>
 <br>
 **Note:**<br>

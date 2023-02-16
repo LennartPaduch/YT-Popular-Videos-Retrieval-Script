@@ -1,6 +1,6 @@
 # YouTube Popular Videos Retrieval Script
 
-This is a python script that retrieves and stores information about the top 200 trending videos based on sepecified **category_ids**, for each country, into a postgreSQL database table **yt_videos**. The script also calculates a SHA-256 hash for each video thumbnail, detects changes in thumbnails by comparing the hashes with stored ones in the database and automatically downloads new or updated thumbnails.
+This Python script retrieves and stores information about up to the top 200 trending videos, based on specified category_ids, for each specified country. The script saves this information into a PostgreSQL database table called yt_videos. If the script retrieves a video_id that already exists in the **yt_videos** table, it updates the values in the table, whereas all videos are always inserted into the **yt_videos_history** table, which provides a historical picture and enables data analysis, such as tracking changes in metrics over time. Additionally, the script calculates a SHA-256 hash for each video thumbnail and detects changes in thumbnails by comparing the hashes with those stored in the database. Finally, the script automatically downloads new or updated thumbnails.
 
 ## Features
 
@@ -38,7 +38,7 @@ For example, to create a virtual environment named venv, which is a commonly use
 
 **Note**: By default, the categories for primary and secondary starting arguments are set to **'All'**, **'Gaming'**, **'Comedy'** and **'Entertainment'**. However, you can adjust these categories in the main function of the main.py file.
 <br>
-When running the script with any other value for the --countries argument, it will only retrieve data from the 'All' category, which includes every category but is limited to a maximum of 200 videos.
+If you run the script with any value other than 'PRIMARY' or 'SECONDARY' for the --countries argument, it will retrieve data only from the 'All' category, which includes every category but is limited to a maximum of 200 videos. Note that the value(s) provided for --countries are case-**insensitive**.
 <br>
 <br>
 You have several options for the **--countries** argument when running the script:

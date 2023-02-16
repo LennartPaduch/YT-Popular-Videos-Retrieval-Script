@@ -48,7 +48,7 @@ from download_thumbnails import download_images
 # logging module is imported to log information about the script's execution,
 import logging
 
-# argparse module to use args such as `--countries primary` when running this script
+# argparse module to use args such as `--countries PRIMARY` when running this script
 import argparse
 
 
@@ -70,7 +70,7 @@ class PostgreSQL:
             logging.info("Connected to PostgreSQL")
             return conn, cur
         except (Exception, psycopg2.DatabaseError) as error:
-            logging.error(f"Failed to connect to the database: {error}")
+            _raise_value_error("Failed to connect to the database", error)
 
 
 async def insert_videos_into_db(data, conn: psycopg2.extensions.connection, cur: psycopg2.extensions.cursor) -> None:
@@ -121,8 +121,8 @@ async def insert_videos_into_db(data, conn: psycopg2.extensions.connection, cur:
         conn.commit()
     except Exception as e:
         # Log an error message and rollback the transaction in case of an exception
-        logging.error("Error inserting videos into the database: %s", e)
         conn.rollback()
+        _raise_value_error("Error inserting videos into the database", e)
     insert_query_yt_videos_history = ("""INSERT INTO yt_videos_history
                     (video_id, like_count, view_count, comment_count, timestamp, title, thumbnail_hash, 
                     thumbnail_iteration, embeddable, caption, blocked_regions, trending_regions)
@@ -137,8 +137,8 @@ async def insert_videos_into_db(data, conn: psycopg2.extensions.connection, cur:
         conn.commit()
     except Exception as e:
         # Log an error message and rollback the transaction in case of an exception
-        logging.error("Error inserting videos into the database: %s", e)
         conn.rollback()    
+        _raise_value_error("Error inserting videos into the database", e)
 
 
 async def get_trending_videos(service: Resource, countries, category_ids) -> List[Dict]:
@@ -160,9 +160,9 @@ async def get_trending_videos(service: Resource, countries, category_ids) -> Lis
 
     # Loop through each country and fetch the trending videos for each video category
     for country in countries:
+        print(country)
         video_count = len(videos)
         for category in category_ids:
-            if(country['code'] != 'US'): break
             # Execute the first request to get the trending videos for the current country and video category
             request = service.videos().list(
                 part='contentDetails,id,liveStreamingDetails,localizations,player,snippet,statistics,status,topicDetails',
@@ -194,12 +194,12 @@ async def get_trending_videos(service: Resource, countries, category_ids) -> Lis
                     maxResults=50
                 )
                 response = request.execute()
-        logging.info(f"Fetched {len(videos) - video_count} videos for: {country['name']}")
+      
+        logging.info(f"Fetched {len(videos) - video_count} videos for {country['name']}")
     logging.info(f"Fetched a total of {len(videos)} videos")
     return videos, video_trending_regions
 
     
-
 async def get_image_data(session, url):
     """
     Retrieve the image data from the given URL.
@@ -210,16 +210,6 @@ async def get_image_data(session, url):
     """
     async with session.get(f"https://i.ytimg.com/vi/{url}/hqdefault.jpg") as response:
         return await response.read()
-
-
-def generate_hash(image_data):
-    """
-    Generate a SHA-256 hash of the given image data.
-    
-    :param image_data: image data in bytes
-    :return: SHA-256 hash of the image data
-    """
-    return hashlib.sha256(image_data).hexdigest()
 
 
 async def generate_hash_async(session, url: str, semaphore):
@@ -233,7 +223,8 @@ async def generate_hash_async(session, url: str, semaphore):
     """
     async with semaphore:
         image_data = await get_image_data(session, url)
-        return generate_hash(image_data)
+        return hashlib.sha256(image_data).hexdigest()
+
 
 def generate_thumbnail_iteration(cur: psycopg2.extensions.cursor, video_ids, thumbnail_hashes):
     """
@@ -249,23 +240,25 @@ def generate_thumbnail_iteration(cur: psycopg2.extensions.cursor, video_ids, thu
     :return: a dictionary mapping video ids to thumbnail iterations and a list of thumbnails to download
     """
     placeholders = ', '.join(['%s'] * len(video_ids))
-    cur.execute(
-        f"""
-        WITH max_iterations AS 
-            (SELECT yt_videos_history.video_id, MAX(thumbnail_iteration) AS max_iteration 
-                FROM yt_videos_history 
-                WHERE video_id IN ({placeholders}) 
-                GROUP BY video_id) 
-        SELECT yt_videos_history.video_id, thumbnail_hash, thumbnail_iteration 
-        FROM yt_videos_history 
-        JOIN max_iterations ON yt_videos_history.video_id = max_iterations.video_id 
-                            AND yt_videos_history.thumbnail_iteration = max_iterations.max_iteration""", video_ids)
-    results = cur.fetchall()
-    iteration_dict = {}
+    query = f"""
+    WITH max_iterations AS 
+        (SELECT yt_videos_history.video_id, MAX(thumbnail_iteration) AS max_iteration 
+            FROM yt_videos_history 
+            WHERE video_id IN ({placeholders}) 
+            GROUP BY video_id) 
+    SELECT yt_videos_history.video_id, thumbnail_hash, thumbnail_iteration 
+    FROM yt_videos_history 
+    JOIN max_iterations ON yt_videos_history.video_id = max_iterations.video_id 
+                        AND yt_videos_history.thumbnail_iteration = max_iterations.max_iteration
+    """
+    try:
+        cur.execute(query, video_ids)
+        results = cur.fetchall()
+    except Exception as e:
+        _raise_value_error("Error while fetching thumbnail iterations from database", e)
+
     thumbnails_to_download = list()
-    for row in results:
-        video_id, hash, thumbnail_iteration = row
-        iteration_dict[video_id] = {"thumbnail_iteration": thumbnail_iteration, "thumbnail_hash": hash}
+    iteration_dict = {row[0]: {"thumbnail_iteration": row[2], "thumbnail_hash": row[1]} for row in results}
     for video_id, thumbnail_hash in zip(video_ids, thumbnail_hashes):
         if video_id in iteration_dict:
             if(iteration_dict[video_id]["thumbnail_hash"] == thumbnail_hash):
@@ -332,33 +325,27 @@ async def get_data(cur: psycopg2.extensions.cursor, videos, video_trending_regio
     return data, thumbnails_to_download    
 
 
+def _raise_value_error(text, error=None):
+    if error is not None:
+        message = f"{text}: {error}"
+    else:
+        message = text
+    logging.error(message)
+    raise ValueError(message)
+ 
 async def main() -> None:
     """
-    Main function
-    This function retrieves trending YouTube videos for a set of countries (max. 200 per country), 
-    stores the video information in a PostgreSQL database and closes the database connection.
+    This function retrieves trending YouTube videos for a set of countries (max. 200 per category, per country), 
+    stores the video information in a PostgreSQL database and downloads new and changed thumbnails.
     
     Keyword arguments:
-    yt_v3_key    -- The YouTube API key.
-    max_results  -- The maximum number of results per country.
+    YT_V3_KEY    -- The YouTube API key.
     conn, cur    -- Connection and cursor objects for the PostgreSQL database.
     service      -- Service object from the YouTube API.
     """
     start_time = time.time()
 
-    # 'countries' arg that's passed when running this script i.e. main.py --countries primary
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--countries", type=str)
-    countries = parser.parse_args().countries
-
-    # If countries is 'primary', retrieve categories 'Gaming', 'Comedy', 'Entertainment' and 'All'
-    # If countries is not 'primary', retrieve only category 'All'
-    # This is to avoid exceeding the API quota limit of 10,000 per day.
-    category_ids = [CATEGORIES['All']]
-    if countries == 'primary':
-        category_ids.extend([CATEGORIES['Gaming'], CATEGORIES['Comedy'], CATEGORIES['Entertainment']])
- 
-    # Set up logging
+     # Set up logging
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
     today = datetime.datetime.now().strftime('%Y-%m-%d')
@@ -370,14 +357,36 @@ async def main() -> None:
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
-    # Get the YouTube API key and connect to the postgreSQL database
+    # 'countries' arg that's passed when running this script i.e. main.py --countries PRIMARY
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--countries", type=str, default='US')
+    args = parser.parse_args()
+    countries = COUNTRIES.get(args.countries.upper(), [])
+
+    # If countries is 'PRIMARY', retrieve categories 'Gaming', 'Comedy', 'Entertainment' and 'All'
+    # If countries is not 'PRIMARY', retrieve only category 'All'
+    # This is to avoid exceeding the API quota limit of 10,000 per day.
+    category_ids = [CATEGORIES['All']]
+
+    if args.countries == 'PRIMARY':
+        category_ids.extend([CATEGORIES['Gaming'], CATEGORIES['Comedy'], CATEGORIES['Entertainment']])
+    elif args.countries != 'SECONDARY':
+        country_codes = args.countries.replace(" ", "").split(',')
+        countries = [{'code': country_code, 'name': COUNTRIES['ALL'].get(country_code, {'name': country_code})['name']}
+             if country_code in COUNTRIES['ALL'] else _raise_value_error(f"{country_code} is not a valid country code.")
+             for country_code in country_codes]
+
+    if not countries:
+        _raise_value_error("No valid country codes provided.")
+
+    # Get the YouTube API key and connect to the postgreSQ database
     YT_V3_KEY = os.environ.get("YT_v3_API_KEY")
     conn, cur = PostgreSQL.connect()
     # Create a service object from the YouTube API
     service = build('youtube', 'v3', developerKey=YT_V3_KEY)
 
     # Retrieve trending videos and insert them into the database
-    videos, video_trending_regions, = await get_trending_videos(service, COUNTRIES[countries], category_ids)
+    videos, video_trending_regions, = await get_trending_videos(service, countries, category_ids)
     data, thumbnails_to_download = await get_data(cur, videos, video_trending_regions)
     await insert_videos_into_db(data, conn, cur)
 
@@ -386,9 +395,10 @@ async def main() -> None:
     conn.close()
 
     # Download video thumbnails and log code runtime
-    download_images(thumbnails_to_download)
+    download_images(thumbnails_to_download, logger)
     logger.info("Code runtime: %s seconds", time.time() - start_time)
 
 
 if __name__ == '__main__':
     asyncio.run(main())
+ 
